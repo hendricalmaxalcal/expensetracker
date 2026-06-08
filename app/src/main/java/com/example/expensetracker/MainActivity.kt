@@ -1,6 +1,8 @@
 package com.example.expensetracker
 
 import android.os.Bundle
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Arrangement
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -115,10 +117,27 @@ fun ExpenseTrackerHome(modifier: Modifier = Modifier) {
 
         Spacer(modifier = Modifier.height(10.dp))
 
-        expenses.forEach { expense ->
-            Text(
-                text = "• ${expense.title} - TZS ${expense.amount}"
-            )
+        expenses.forEachIndexed { index, expense ->
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 6.dp),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+
+                Text(
+                    text = "• ${expense.title} - TZS ${expense.amount}"
+                )
+
+                Button(
+                    onClick = {
+                        expenses.removeAt(index)
+                    }
+                ) {
+                    Text("Delete")
+                }
+            }
         }
     }
 }
