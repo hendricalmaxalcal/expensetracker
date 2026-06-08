@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="20dp">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Amount (TZS)"
+        android:textSize="12sp"
+        android:textColor="#8A94A6"
+        android:layout_marginBottom="6dp"/>
+
+    <EditText
+        android:id="@+id/etEditAmount"
+        android:layout_width="match_parent"
+        android:layout_height="52dp"
+        android:hint="0.00"
+        android:inputType="numberDecimal"
+        android:padding="12dp"
+        android:textSize="16sp"
+        android:background="@drawable/input_background"
+        android:layout_marginBottom="16dp"/>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Description"
+        android:textSize="12sp"
+        android:textColor="#8A94A6"
+        android:layout_marginBottom="6dp"/>
+
+    <EditText
+        android:id="@+id/etEditDescription"
+        android:layout_width="match_parent"
+        android:layout_height="52dp"
+        android:hint="e.g. Groceries, Salary..."
+        android:inputType="text"
+        android:padding="12dp"
+        android:textSize="16sp"
+        android:background="@drawable/input_background"
+        android:layout_marginBottom="16dp"/>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Category"
+        android:textSize="12sp"
+        android:textColor="#8A94A6"
+        android:layout_marginBottom="6dp"/>
+
+    <Spinner
+        android:id="@+id/spinnerCategory"
+        android:layout_width="match_parent"
+        android:layout_height="52dp"
+        android:background="@drawable/input_background"
+        android:layout_marginBottom="16dp"/>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Type"
+        android:textSize="12sp"
+        android:textColor="#8A94A6"
+        android:layout_marginBottom="6dp"/>
+
+    <Spinner
+        android:id="@+id/spinnerType"
+        android:layout_width="match_parent"
+        android:layout_height="52dp"
+        android:background="@drawable/input_background"/>
+
+</LinearLayout>
