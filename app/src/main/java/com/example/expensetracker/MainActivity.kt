@@ -32,7 +32,16 @@ class MainActivity : AppCompatActivity() {
     private lateinit var tvExpense: TextView
     private lateinit var summaryList: LinearLayout
 
-    private val categories = arrayOf("Food", "Transport", "Bills", "Shopping", "Health", "Other")
+    private lateinit var tvBudgetAmount: TextView
+    private lateinit var tvBudgetSpent: TextView
+    private lateinit var tvBudgetRemaining: TextView
+    private lateinit var budgetProgress: ProgressBar
+    private lateinit var tvBudgetWarning: TextView
+    private var monthlyBudget = 0.0
+
+    // Different categories for Expense and Income
+    private val expenseCategories = arrayOf("Food", "Transport", "Bills", "Shopping", "Health", "Other")
+    private val incomeCategories = arrayOf("Sales", "Capital", "Other")
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -49,6 +58,29 @@ class MainActivity : AppCompatActivity() {
         tvExpense = findViewById(R.id.tvExpense)
         summaryList = findViewById(R.id.summaryList)
 
+        // Find budget views
+        tvBudgetAmount = findViewById(R.id.tvBudgetAmount)
+        tvBudgetSpent = findViewById(R.id.tvBudgetSpent)
+        tvBudgetRemaining = findViewById(R.id.tvBudgetRemaining)
+        budgetProgress = findViewById(R.id.budgetProgress)
+        tvBudgetWarning = findViewById(R.id.tvBudgetWarning)
+        val btnSetBudget = findViewById<Button>(R.id.btnSetBudget)
+        val btnClearBudget = findViewById<Button>(R.id.btnClearBudget)
+
+        // Load budget
+        monthlyBudget = loadBudget()
+        updateBudgetDisplay()
+
+        // Set budget button click
+        btnSetBudget.setOnClickListener {
+            showSetBudgetDialog()
+        }
+
+        // Clear budget button click
+        btnClearBudget.setOnClickListener {
+            showClearBudgetDialog()
+        }
+
         loadExpenses()
         refreshList()
 
@@ -59,6 +91,17 @@ class MainActivity : AppCompatActivity() {
         btnIncome.setOnClickListener {
             showAddDialog(etAmount, etDescription, "income")
         }
+    }
+
+    private fun saveBudget(budget: Double) {
+        val prefs = getSharedPreferences("ExpenseData", Context.MODE_PRIVATE)
+        prefs.edit().putString("monthly_budget", budget.toString()).apply()
+    }
+
+    private fun loadBudget(): Double {
+        val prefs = getSharedPreferences("ExpenseData", Context.MODE_PRIVATE)
+        val budgetStr = prefs.getString("monthly_budget", "0")
+        return budgetStr?.toDoubleOrNull() ?: 0.0
     }
 
     private fun showAddDialog(etAmount: EditText, etDescription: EditText, type: String) {
@@ -76,10 +119,14 @@ class MainActivity : AppCompatActivity() {
             return
         }
 
+        // Choose category list based on type
+        val categoriesToShow = if (type == "expense") expenseCategories else incomeCategories
+        val title = if (type == "expense") "Select Expense Category" else "Select Income Category"
+
         AlertDialog.Builder(this)
-            .setTitle("Select Category")
-            .setItems(categories) { _, which ->
-                val category = categories[which]
+            .setTitle(title)
+            .setItems(categoriesToShow) { _, which ->
+                val category = categoriesToShow[which]
                 val sdf = SimpleDateFormat("dd MMM yyyy, HH:mm", Locale.getDefault())
                 val date = sdf.format(Date())
 
@@ -125,6 +172,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         refreshMonthlySummary()
+        updateBudgetDisplay()
     }
 
     private fun refreshMonthlySummary() {
@@ -237,7 +285,7 @@ class MainActivity : AppCompatActivity() {
                 labelRow.gravity = Gravity.CENTER_VERTICAL
 
                 val tvCat = TextView(this)
-                tvCat.text = "${categoryIcon(category)} $category"
+                tvCat.text = "${getCategoryIcon(category)} $category"
                 tvCat.textSize = 14f
                 tvCat.setTextColor(Color.parseColor("#1A1A2E"))
                 tvCat.layoutParams = LinearLayout.LayoutParams(
@@ -312,7 +360,7 @@ class MainActivity : AppCompatActivity() {
             0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
 
         val tvDesc = TextView(this)
-        tvDesc.text = "${categoryIcon(expense.category)} ${expense.description}"
+        tvDesc.text = "${getCategoryIcon(expense.category)} ${expense.description}"
         tvDesc.textSize = 15f
         tvDesc.setTextColor(Color.parseColor("#1A1A2E"))
 
@@ -331,8 +379,19 @@ class MainActivity : AppCompatActivity() {
         tvAmt.setTextColor(Color.parseColor(if (isIncome) "#38A169" else "#E53E3E"))
         tvAmt.setTypeface(null, android.graphics.Typeface.BOLD)
 
+        // Delete Button
+        val btnDelete = TextView(this)
+        btnDelete.text = "  🗑️  "
+        btnDelete.textSize = 16f
+        btnDelete.setTextColor(Color.parseColor("#E53E3E"))
+        btnDelete.setPadding(16, 8, 8, 8)
+        btnDelete.setOnClickListener {
+            showDeleteDialog(expense)
+        }
+
         row.addView(leftLayout)
         row.addView(tvAmt)
+        row.addView(btnDelete)
 
         wrapper.addView(row)
 
@@ -342,7 +401,7 @@ class MainActivity : AppCompatActivity() {
         divider.setBackgroundColor(Color.parseColor("#F0F4F8"))
         wrapper.addView(divider)
 
-        // Handle both tap (edit) and swipe (delete)
+        // Keep swipe to delete as well (both work)
         var startX = 0f
         var startY = 0f
         var isSwiping = false
@@ -360,7 +419,6 @@ class MainActivity : AppCompatActivity() {
                     val deltaX = kotlin.math.abs(event.rawX - startX)
                     val deltaY = kotlin.math.abs(event.rawY - startY)
 
-                    // If horizontal movement is greater than vertical, it's a swipe
                     if (deltaX > deltaY && deltaX > 20) {
                         isSwiping = true
                     }
@@ -370,12 +428,9 @@ class MainActivity : AppCompatActivity() {
                     val deltaX = kotlin.math.abs(event.rawX - startX)
                     val deltaY = kotlin.math.abs(event.rawY - startY)
 
-                    // Check if it was a swipe (horizontal movement)
                     if (deltaX > SWIPE_THRESHOLD && deltaX > deltaY) {
-                        // Swipe detected - delete
                         showDeleteDialog(expense)
                     } else if (!isSwiping && deltaX < 10 && deltaY < 10) {
-                        // Tap detected (no significant movement) - edit
                         showEditDialog(expense)
                     }
                     isSwiping = false
@@ -399,11 +454,14 @@ class MainActivity : AppCompatActivity() {
         etEditAmount.setText(expense.amount.toString())
         etEditDescription.setText(expense.description)
 
+        // Choose category list based on type
+        val categoriesToShow = if (expense.type == "expense") expenseCategories else incomeCategories
+
         // Setup category spinner
-        val categoryAdapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, categories)
+        val categoryAdapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, categoriesToShow)
         categoryAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
         spinnerCategory.adapter = categoryAdapter
-        val categoryIndex = categories.indexOf(expense.category)
+        val categoryIndex = categoriesToShow.indexOf(expense.category)
         if (categoryIndex >= 0) spinnerCategory.setSelection(categoryIndex)
 
         // Setup type spinner
@@ -436,7 +494,6 @@ class MainActivity : AppCompatActivity() {
                 // Update the expense
                 val index = expenses.indexOfFirst { it.id == expense.id }
                 if (index >= 0) {
-                    // Keep the original date
                     val updatedExpense = expense.copy(
                         description = newDescription,
                         amount = newAmount,
@@ -467,13 +524,17 @@ class MainActivity : AppCompatActivity() {
             .show()
     }
 
-    private fun categoryIcon(category: String): String {
+    private fun getCategoryIcon(category: String): String {
         return when (category) {
+            // Expense categories
             "Food" -> "🍔"
             "Transport" -> "🚗"
             "Bills" -> "💡"
             "Shopping" -> "🛍️"
             "Health" -> "🏥"
+            // Income categories
+            "Sales" -> "💰"
+            "Capital" -> "📈"
             else -> "📌"
         }
     }
@@ -492,6 +553,157 @@ class MainActivity : AppCompatActivity() {
         }
         val prefs = getSharedPreferences("ExpenseData", Context.MODE_PRIVATE)
         prefs.edit().putString("expenses", jsonArray.toString()).apply()
+    }
+
+    private fun showSetBudgetDialog() {
+        val dialogView = layoutInflater.inflate(R.layout.dialog_set_budget, null)
+        val etBudget = dialogView.findViewById<EditText>(R.id.etBudget)
+
+        if (monthlyBudget > 0) {
+            etBudget.setText(monthlyBudget.toInt().toString())
+        }
+
+        AlertDialog.Builder(this)
+            .setTitle("Set Monthly Budget")
+            .setMessage("Enter your budget amount for this month (TZS)")
+            .setView(dialogView)
+            .setPositiveButton("Save") { _, _ ->
+                val budgetText = etBudget.text.toString()
+                if (budgetText.isNotEmpty()) {
+                    val budget = budgetText.toDoubleOrNull()
+                    if (budget != null && budget > 0) {
+                        monthlyBudget = budget
+                        saveBudget(monthlyBudget)
+                        updateBudgetDisplay()
+
+                        // Reset alert flags when setting new budget
+                        val prefs = getSharedPreferences("ExpenseData", Context.MODE_PRIVATE)
+                        prefs.edit().putBoolean("alert_90_shown", false).apply()
+                        prefs.edit().putBoolean("alert_100_shown", false).apply()
+
+                        Toast.makeText(this, "Budget set to TZS ${String.format("%.2f", budget)}", Toast.LENGTH_SHORT).show()
+                    } else {
+                        Toast.makeText(this, "Please enter a valid amount", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    private fun showClearBudgetDialog() {
+        AlertDialog.Builder(this)
+            .setTitle("Clear Budget")
+            .setMessage("Are you sure you want to clear your monthly budget?\n\nThis will reset your budget to TZS 0.00")
+            .setIcon(android.R.drawable.ic_dialog_alert)
+            .setPositiveButton("Clear") { _, _ ->
+                monthlyBudget = 0.0
+                saveBudget(monthlyBudget)
+
+                // Reset alert flags
+                val prefs = getSharedPreferences("ExpenseData", Context.MODE_PRIVATE)
+                prefs.edit().putBoolean("alert_90_shown", false).apply()
+                prefs.edit().putBoolean("alert_100_shown", false).apply()
+
+                updateBudgetDisplay()
+                Toast.makeText(this, "Budget cleared!", Toast.LENGTH_SHORT).show()
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    private fun getCurrentMonthExpenses(): Double {
+        val calendar = Calendar.getInstance()
+        val currentYear = calendar.get(Calendar.YEAR)
+        val currentMonth = calendar.get(Calendar.MONTH)
+        val dateFormat = SimpleDateFormat("dd MMM yyyy, HH:mm", Locale.getDefault())
+
+        return expenses.filter { expense ->
+            expense.type == "expense" && try {
+                val date = dateFormat.parse(expense.date)
+                if (date != null) {
+                    val cal = Calendar.getInstance()
+                    cal.time = date
+                    cal.get(Calendar.YEAR) == currentYear && cal.get(Calendar.MONTH) == currentMonth
+                } else false
+            } catch (e: Exception) { false }
+        }.sumOf { it.amount }
+    }
+
+    private fun updateBudgetDisplay() {
+        if (monthlyBudget == 0.0) {
+            tvBudgetAmount.text = "No budget set"
+            tvBudgetSpent.text = "Tap 'Set' to create a budget"
+            tvBudgetRemaining.text = ""
+            budgetProgress.visibility = ProgressBar.GONE
+            tvBudgetWarning.visibility = View.GONE
+            return
+        }
+
+        budgetProgress.visibility = ProgressBar.VISIBLE
+        val currentSpent = getCurrentMonthExpenses()
+        val remaining = monthlyBudget - currentSpent
+        val percentage = ((currentSpent / monthlyBudget) * 100).toInt()
+
+        tvBudgetAmount.text = String.format("📊 Budget: TZS %.2f", monthlyBudget)
+        tvBudgetSpent.text = String.format("💸 Spent: TZS %.2f", currentSpent)
+
+        if (remaining >= 0) {
+            tvBudgetRemaining.text = String.format("✅ Remaining: TZS %.2f", remaining)
+            tvBudgetRemaining.setTextColor(Color.parseColor("#38A169"))
+        } else {
+            tvBudgetRemaining.text = String.format("⚠️ Over budget by: TZS %.2f", kotlin.math.abs(remaining))
+            tvBudgetRemaining.setTextColor(Color.parseColor("#E53E3E"))
+        }
+
+        budgetProgress.progress = minOf(percentage, 100)
+
+        val prefs = getSharedPreferences("ExpenseData", Context.MODE_PRIVATE)
+        val alert90Shown = prefs.getBoolean("alert_90_shown", false)
+        val alert100Shown = prefs.getBoolean("alert_100_shown", false)
+
+        if (percentage >= 100 && !alert100Shown) {
+            budgetProgress.progressTintList = android.content.res.ColorStateList.valueOf(Color.parseColor("#E53E3E"))
+            showBudgetAlertDialog("Budget Exceeded!",
+                "You have exceeded your monthly budget!\n\n" +
+                        "Budget: TZS ${String.format("%.2f", monthlyBudget)}\n" +
+                        "Spent: TZS ${String.format("%.2f", currentSpent)}\n" +
+                        "Overspent: TZS ${String.format("%.2f", kotlin.math.abs(remaining))}\n\n" +
+                        "Consider reducing your expenses.")
+            prefs.edit().putBoolean("alert_100_shown", true).apply()
+        }
+        else if (percentage >= 90 && !alert90Shown && percentage < 100) {
+            budgetProgress.progressTintList = android.content.res.ColorStateList.valueOf(Color.parseColor("#ED8936"))
+            showBudgetAlertDialog("Budget Warning!",
+                "You have used $percentage% of your monthly budget!\n\n" +
+                        "Budget: TZS ${String.format("%.2f", monthlyBudget)}\n" +
+                        "Spent: TZS ${String.format("%.2f", currentSpent)}\n" +
+                        "Remaining: TZS ${String.format("%.2f", remaining)}\n\n" +
+                        "Be careful with your spending.")
+            prefs.edit().putBoolean("alert_90_shown", true).apply()
+        }
+        else if (percentage < 90) {
+            if (alert90Shown || alert100Shown) {
+                prefs.edit().putBoolean("alert_90_shown", false).apply()
+                prefs.edit().putBoolean("alert_100_shown", false).apply()
+            }
+            budgetProgress.progressTintList = android.content.res.ColorStateList.valueOf(Color.parseColor("#38A169"))
+            tvBudgetWarning.visibility = View.GONE
+        }
+    }
+
+    private fun showBudgetAlertDialog(title: String, message: String) {
+        AlertDialog.Builder(this)
+            .setTitle(title)
+            .setMessage(message)
+            .setIcon(android.R.drawable.ic_dialog_alert)
+            .setPositiveButton("OK") { dialog, _ ->
+                dialog.dismiss()
+            }
+            .setNegativeButton("View Budget") { _, _ ->
+                Toast.makeText(this, "Check your budget summary above", Toast.LENGTH_SHORT).show()
+            }
+            .show()
     }
 
     private fun loadExpenses() {

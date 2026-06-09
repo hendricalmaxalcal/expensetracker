@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape android:shape="oval">
+            <solid android:color="#FFFFFF"/>
+            <size android:width="120dp" android:height="120dp"/>
+        </shape>
+    </item>
+
+    <item
+        android:gravity="center"
+        android:top="30dp"
+        android:bottom="30dp"
+        android:left="30dp"
+        android:right="30dp">
+        <text
+            android:text="💰"
+            android:textSize="60sp"
+            android:textColor="#1A1A2E"/>
+    </item>
+</layer-list>

@@ -8,7 +8,7 @@
         android:label="Expense Tracker"
         android:theme="@style/Theme.AppCompat.Light.DarkActionBar">
 
-        <!-- Splash Activity -->
+        <!-- Splash Activity (Launcher) -->
         <activity
             android:name=".SplashActivity"
             android:exported="true"
@@ -22,7 +22,8 @@
         <!-- Main Activity -->
         <activity
             android:name=".MainActivity"
-            android:exported="false" />
+            android:exported="false"
+            android:theme="@style/Theme.AppCompat.Light.NoActionBar" />
 
     </application>
 
